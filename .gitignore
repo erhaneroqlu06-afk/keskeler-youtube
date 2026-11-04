@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+cikti/
+seo_cache/
+*.mp4
+*.mp3
+*.jpg
+*.jpeg
+!referans/*.jpg
+!referans/*.jpeg
+.env

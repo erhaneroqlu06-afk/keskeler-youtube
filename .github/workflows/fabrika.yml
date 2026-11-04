@@ -1,0 +1,84 @@
+name: Keşkeler Fabrika
+
+on:
+  schedule:
+    # Her 2 günde bir, 09:13 UTC (12:13 TR üretim) → 20:00 TR yayın
+    - cron: "13 9 2-31/2 * *"
+  workflow_dispatch:
+    inputs:
+      mod:
+        description: "ornek = gizli örnek | deneme = gizli yükle | otomatik = 20:00'de yayınla | sadece_uret = yükleme yok"
+        type: choice
+        options: [ornek, deneme, otomatik, sadece_uret]
+        default: deneme
+      bolum:
+        description: "Belirli bir bölüm numarası (boşsa sıradaki)"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: keskeler-fabrika
+  cancel-in-progress: false
+
+jobs:
+  fabrika:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Araçları kur
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+          pip install -q anthropic google-genai edge-tts gTTS pillow google-api-python-client google-auth
+
+      - name: Önceki üretim kayıtlarını yükle
+        uses: actions/download-artifact@v4
+        with:
+          name: keskeler-kayit
+          path: .
+        continue-on-error: true
+
+      - name: Bölümü üret ve yükle
+        run: |
+          MOD="${{ inputs.mod || 'otomatik' }}"
+          BOLUM_ARG=""
+          if [ -n "${{ inputs.bolum }}" ]; then BOLUM_ARG="--bolum ${{ inputs.bolum }}"; fi
+          python -u fabrika.py "$MOD" $BOLUM_ARG 2>&1 | tee uretim.log
+
+      - name: Kayıtları sakla
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keskeler-kayit
+          path: |
+            yuklenenler.txt
+            uretim/
+          retention-days: 90
+
+      - name: Üretilen dosyaları sakla
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keskeler-cikti
+          path: |
+            cikti/**/*.mp4
+            cikti/**/*.jpg
+            uretim.log
+          retention-days: 7

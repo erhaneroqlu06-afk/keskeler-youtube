@@ -1,0 +1,20 @@
+{
+  "aciklama": "Keşkeler bölüm planı. Her 2 günde bir sıradaki bölüm üretilir.",
+  "bolumler": [
+    {"no": 1, "kanca": "1999 depreminden önce evini satmış olsaydın?", "donem": "1999", "konu": "Marmara depremi", "duygu": "pisman-olmamak"},
+    {"no": 2, "kanca": "2010'da üç bin lirayı Bitcoin'e yatırmış olsaydın?", "donem": "2010", "konu": "erken Bitcoin yatırımı", "duygu": "kacirmis-firsat"},
+    {"no": 3, "kanca": "Babanın köydeki tarlasını satmasaydın?", "donem": "2000'ler", "konu": "miras arazi", "duygu": "baba-mirası"},
+    {"no": 4, "kanca": "Askerden döndüğünde o kıza evlenme teklif etseydin?", "donem": "80'ler-90'lar", "konu": "ilk aşk", "duygu": "soylenmemis-soz"},
+    {"no": 5, "kanca": "2001 krizinde dolar bozmamış olsaydın?", "donem": "2001", "konu": "Türkiye ekonomik krizi", "duygu": "yanlis-karar"},
+    {"no": 6, "kanca": "1980'de Almanya'ya işçi olarak gitseydin?", "donem": "1980", "konu": "gurbet", "duygu": "yol-ayrimi"},
+    {"no": 7, "kanca": "Emekli ikramiyesiyle ev yerine altın alsaydın?", "donem": "2000'ler", "konu": "yatırım kararı", "duygu": "degerlendirme"},
+    {"no": 8, "kanca": "Lise sondayken tıp yerine mühendisliği seçmeseydin?", "donem": "80'ler-90'lar", "konu": "meslek seçimi", "duygu": "farkli-hayat"},
+    {"no": 9, "kanca": "Pandemide o küçük dükkânı kiralamış olsaydın?", "donem": "2020", "konu": "fırsat", "duygu": "cesaret"},
+    {"no": 10, "kanca": "1994'te telekom hisselerini almış olsaydın?", "donem": "1994", "konu": "borsa", "duygu": "bilgi-eksik"},
+    {"no": 11, "kanca": "Oğlunu üniversiteye başka şehre göndermeseydin?", "donem": "2000'ler", "konu": "aile", "duygu": "ayrilik"},
+    {"no": 12, "kanca": "90'larda köyden şehre taşınmasaydın?", "donem": "90'lar", "konu": "göç", "duygu": "koke-donus"},
+    {"no": 13, "kanca": "Eşinin ailesinin yanına taşınsaydın?", "donem": "2000'ler", "konu": "aile ilişkileri", "duygu": "kayinvalide-yanı"},
+    {"no": 14, "kanca": "17 yaşında futbol kariyerini bırakmasaydın?", "donem": "gençlik", "konu": "sportif hayal", "duygu": "yarım-kalmış"},
+    {"no": 15, "kanca": "O gün trafik ışığında geç kalmasaydın?", "donem": "güncel", "konu": "kader", "duygu": "ani-karar"}
+  ]
+}

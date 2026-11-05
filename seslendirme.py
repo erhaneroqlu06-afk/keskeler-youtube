@@ -2,10 +2,10 @@
 seslendirme.py — Gemini'nin doğal sesiyle anlatıcı (yedek: Edge TTS, sonra gTTS).
 
 Keşkeler anlatıcı sesi:
-- Sıcak, sakin, duygulu hikâye anlatıcısı; doğal tempo
+- Canlı, heyecanlı, sürükleyici hikâye anlatıcısı; her sahneye özel duygu (ton)
 - Müzik yok, sadece ses
 - Model adı hesaptan otomatik bulunur (adı "tts" içeren flash model); GEMINI_TTS_MODEL ile değiştirilebilir
-- Ses: GEMINI_SES (varsayılan Algieba)
+- Ses: GEMINI_SES (varsayılan Puck, canlı/heyecanlı); hız SES_HIZI (varsayılan 1.08)
 """
 
 import asyncio
@@ -15,9 +15,11 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 
-GEMINI_SES = os.environ.get("GEMINI_SES", "Algieba")
-TALIMAT = ("Read the following aloud in Turkish, as a warm, calm, emotional storyteller "
-           "speaking to one listener, at a natural unhurried pace, with gentle pauses: ")
+GEMINI_SES = os.environ.get("GEMINI_SES", "Puck")
+TALIMAT = ("Read the following aloud in Turkish like a gripping, energetic YouTube storyteller: "
+           "lively and expressive, with clear emotional swings, stress on key words, rising intonation on "
+           "questions, dramatic pauses before reveals, a slightly fast confident pace, never monotone or flat. ")
+HIZ = float(os.environ.get("SES_HIZI", "1.08"))  # ffmpeg atempo: perde bozulmadan biraz hızlandırır
 
 EDGE_SES = os.environ.get("EDGE_SES", "tr-TR-AhmetNeural")
 EDGE_HIZ = os.environ.get("EDGE_HIZ", "-5%")
@@ -37,7 +39,8 @@ def _tts_modeli():
     from google import genai
     adaylar = []
     try:
-        for m in genai.Client().models.list():
+        istemci = genai.Client()  # değişkende tut: geçici istemci kapanıp liste yarım kalıyordu
+        for m in istemci.models.list():
             ad = m.name.replace("models/", "")
             if "tts" in ad:
                 adaylar.append(ad)
@@ -49,7 +52,7 @@ def _tts_modeli():
     return _model_adi
 
 
-def _gemini_ses(metin, cikti_yolu):
+def _gemini_ses(metin, cikti_yolu, ton=""):
     from google import genai
     from google.genai import types
 
@@ -59,7 +62,7 @@ def _gemini_ses(metin, cikti_yolu):
         try:
             yanit = client.models.generate_content(
                 model=_tts_modeli(),
-                contents=TALIMAT + metin,
+                contents=TALIMAT.rstrip() + (f" The feeling here is: {ton}." if ton else "") + " Read this: " + metin,
                 config=types.GenerateContentConfig(
                     response_modalities=["AUDIO"],
                     speech_config=types.SpeechConfig(
@@ -77,7 +80,7 @@ def _gemini_ses(metin, cikti_yolu):
                 f.write(veri)
             # Gemini ses çıktısı: 24 kHz, 16 bit, tek kanal ham PCM
             r = subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "s16le", "-ar", "24000",
-                                "-ac", "1", "-i", ham, "-b:a", "128k", cikti_yolu],
+                                "-ac", "1", "-i", ham, "-af", f"atempo={HIZ}", "-b:a", "128k", cikti_yolu],
                                capture_output=True, text=True)
             os.remove(ham)
             if r.returncode != 0:
@@ -94,10 +97,10 @@ async def _edge(metin, cikti_yolu):
     await edge_tts.Communicate(metin, EDGE_SES, rate=EDGE_HIZ, pitch=EDGE_PERDE).save(cikti_yolu)
 
 
-def seslendir(metin, cikti_yolu):
+def seslendir(metin, cikti_yolu, ton=""):
     """Metni mp3 yapar: önce Gemini, olmazsa Edge TTS, olmazsa gTTS."""
     try:
-        return _gemini_ses(metin, cikti_yolu)
+        return _gemini_ses(metin, cikti_yolu, ton)
     except Exception as e:
         print(f"[seslendirme] Gemini başarısız, Edge'e dönülüyor: {e}", flush=True)
     try:
@@ -117,7 +120,7 @@ def hikayeyi_seslendir(hikaye, klasor, paralel=3):
 
     def is_(i):
         if not os.path.exists(yollar[i]):
-            seslendir(hikaye["sahneler"][i]["metin"], yollar[i])
+            seslendir(hikaye["sahneler"][i]["metin"], yollar[i], hikaye["sahneler"][i].get("ton", ""))
         return yollar[i]
 
     _tts_modeli()  # model adını bir kez bul (paralel işlerde tekrar aranmasın)

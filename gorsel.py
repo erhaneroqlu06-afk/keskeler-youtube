@@ -19,7 +19,8 @@ STIL_TARIFI = (
     "warm saturated flat colors with soft shading, expressive friendly faces, rich detailed "
     "everyday Turkish settings (apartment blocks, tea glasses, patterned sofas, neighborhood "
     "streets, shops). Warm cinematic lighting, clear focal point, uncluttered composition. "
-    "No text, no letters, no logos, no brand names, no watermarks."
+    "Crisp clean linework, high detail, sharp focus, rich textures, professional animation-quality "
+    "background art. No text, no letters, no logos, no brand names, no watermarks."
 )
 
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-image")
@@ -28,6 +29,16 @@ MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-image")
 def _istemci():
     from google import genai
     return genai.Client()
+
+
+def _netlestir(yol, hedef=(2560, 1440)):
+    """Gemini çıktısını Lanczos ile büyütüp hafifçe keskinleştirir (video 1080p'de net dursun)."""
+    from PIL import Image, ImageFilter
+    im = Image.open(yol).convert("RGB")
+    if im.width < hedef[0]:
+        im = im.resize(hedef, Image.LANCZOS)
+    im = im.filter(ImageFilter.UnsharpMask(radius=1.6, percent=70, threshold=2))
+    im.save(yol)
 
 
 def _resim_iste(contents, cikti_yolu, en_boy):
@@ -50,6 +61,7 @@ def _resim_iste(contents, cikti_yolu, en_boy):
                 if parca.inline_data is not None:
                     with open(cikti_yolu, "wb") as f:
                         f.write(parca.inline_data.data)
+                    _netlestir(cikti_yolu)
                     return cikti_yolu
             raise RuntimeError("Gemini yanıtında resim yok")
         except Exception as e:

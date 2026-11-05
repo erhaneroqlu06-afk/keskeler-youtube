@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 
 
 SISTEM_PROMPTU = """Sen "Keşkeler" adlı Türk YouTube kanalının senaryo yazarısın.
-İzleyici kitlen yetişkinler (30-60 yaş). Sıcak, duygulu, günlük konuşma Türkçesi kullanıyorsun;
+İzleyici kitlen yetişkinler (30-60 yaş). Sıcak, canlı, heyecanlı, günlük konuşma Türkçesi kullanıyorsun;
 sanki bir arkadaşına anlatıyormuşsun gibi. Resmî veya ders gibi konuşma.
 
 Her bölüm bir "ya olsaydı?" sorusunu iki paralel hayat olarak anlatır:
@@ -38,6 +38,9 @@ TAM 60 SAHNE (yaklaşık 10 dakika). Dağılım:
 HER SAHNE
 - "metin": Sesli okunacak 1-2 kısa cümle (12-28 kelime). Somut ve görsel: bir nesne, bir koku, bir cümle,
   bir yüz. Duyguyu anlatma, göster. Her sahne yeni bir şey söylesin; tekrar yok.
+- "ton": Sesli okuma duygusu, 1-3 İNGİLİZCE kelime (ör. "curious and excited", "tense", "warm and hopeful",
+  "heartbroken", "proud", "shocked"). Anlatım DURAĞAN olmasın: heyecanlı ve sürükleyici; sorular, şaşkınlık,
+  merak ve duygu değişimleri olsun. Sahneler arası tonu çeşitlendir.
 - "gorsel": O sahnenin İNGİLİZCE çizim tarifi. Her tarifte ana kahraman (karakter) görünmeli;
   mekân, ışık ve yüz ifadesi net olsun. Zaman geçtikçe kahramanın yaşı, kıyafeti ve çevresi dönemine uysun.
   Düşünce balonu (hayalinde canlanan şey) kullanabilirsin. Resimde yazı, tabela metni, logo olmasın.
@@ -72,9 +75,10 @@ HIKAYE_SEMASI = {
                 "type": "object",
                 "properties": {
                     "metin": {"type": "string"},
+                    "ton": {"type": "string"},
                     "gorsel": {"type": "string"},
                 },
-                "required": ["metin", "gorsel"],
+                "required": ["metin", "ton", "gorsel"],
                 "additionalProperties": False,
             },
         },

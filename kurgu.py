@@ -16,13 +16,13 @@ import subprocess
 FPS = 30
 CEKIM_SN = 4.0
 
-# (z0, z1, cx0, cy0, cx1, cy1)
+# (z0, z1, cx0, cy0, cx1, cy1) — az yakınlaşma = net görüntü
 CERCEVELER = [
-    (1.00, 1.08, .50, .50, .50, .50),   # geniş, hafif yaklaşma
-    (1.45, 1.55, .36, .45, .38, .45),   # yakın sol
-    (1.45, 1.55, .64, .45, .62, .45),   # yakın sağ
-    (1.25, 1.25, .40, .50, .60, .50),   # yatay kaydırma
-    (1.60, 1.70, .50, .42, .50, .42),   # yüz yakın
+    (1.00, 1.10, .50, .50, .50, .50),   # geniş, hafif yaklaşma
+    (1.22, 1.30, .40, .48, .44, .48),   # yakın sol
+    (1.22, 1.30, .60, .48, .56, .48),   # yakın sağ
+    (1.18, 1.18, .42, .50, .58, .50),   # yatay kaydırma
+    (1.28, 1.36, .50, .45, .50, .45),   # yüz yakın
 ]
 
 
@@ -124,44 +124,69 @@ def kanca_resmi(resim, kanca_sorusu, cikti):
 
 # ---------------- SAHNE KLİBİ ----------------
 
-def _ifade(parcalar, varsayilan):
-    s = varsayilan
-    for bitis, e in reversed(parcalar):
-        s = f"if(lt(on\\,{bitis})\\,{e}\\,{s})"
-    return s
+def _yumusat(p):
+    """0-1 arası ilerlemeyi yavaş başlayıp yavaş biten hale getirir (ani sıçrama yok)."""
+    return p * p * (3 - 2 * p)
 
 
 def sahne_klibi(resim, ses, cikti, sira, tek_cekim=False, bas_bosluk=0.15, son_bosluk=0.35):
-    """Resmi ~5 sn çekimlere böler + seslendirme. Siyah geçiş yok."""
+    """Resmi ~4 sn çekimlere böler + seslendirme.
+
+    Kareler OpenCV ile piksel altı hassasiyetle çizilir (ffmpeg zoompan tam piksele
+    yuvarladığı için titriyordu). Çekim içi hareket yumuşak başlayıp yumuşak biter.
+    """
+    import cv2
+    import numpy as np
+
     s = sure(ses) + bas_bosluk + son_bosluk
     kare = int(round(s * FPS))
     n = 1 if tek_cekim else max(1, round(s / CEKIM_SN))
     sinirlar = [round(kare * (i + 1) / n) for i in range(n)]
-    zp, xp, yp = [], [], []
+
+    kaynak = cv2.imread(resim)
+    H0, W0 = kaynak.shape[:2]
+    # tek bir kez yüksek çözünürlüğe getir (Lanczos); hareket sırasında küçültme hafif kalır
+    kaynak = cv2.resize(kaynak, (2880, 1620), interpolation=cv2.INTER_LANCZOS4)
+    SW, SH = 2880, 1620
+    OW, OH = 1920, 1080
+
+    af = (f"adelay={int(bas_bosluk * 1000)}|{int(bas_bosluk * 1000)},apad,"
+          f"atrim=0:{s:.2f},aresample=48000")
+    cmd = ["ffmpeg", "-y", "-v", "error",
+           "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{OW}x{OH}", "-r", str(FPS), "-i", "-",
+           "-i", ses, "-af", af, "-frames:v", str(kare),
+           "-c:v", "libx264", "-preset", "veryfast", "-crf", "19", "-pix_fmt", "yuv420p",
+           "-c:a", "aac", "-b:a", "160k", "-ac", "2", cikti]
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+
     bas = 0
-    for i, bit in enumerate(sinirlar):
-        z0, z1, cx0, cy0, cx1, cy1 = CERCEVELER[0] if tek_cekim else \
-            CERCEVELER[(sira * 2 + i) % len(CERCEVELER)]
-        if tek_cekim:
-            z0, z1 = 1.0, 1.05
-        L = max(1, bit - bas)
-        p = f"((on-{bas})/{L})"
-        z = f"({z0}+({z1 - z0:.4f})*{p})"
-        cx = f"({cx0}+({cx1 - cx0:.4f})*{p})"
-        cy = f"({cy0}+({cy1 - cy0:.4f})*{p})"
-        zp.append((bit, z))
-        xp.append((bit, f"max(0\\,min(iw-iw/zoom\\,{cx}*iw-iw/zoom/2))"))
-        yp.append((bit, f"max(0\\,min(ih-ih/zoom\\,{cy}*ih-ih/zoom/2))"))
-        bas = bit
-    z_e = _ifade(zp[:-1], zp[-1][1])
-    x_e = _ifade(xp[:-1], xp[-1][1])
-    y_e = _ifade(yp[:-1], yp[-1][1])
-    vf = (f"scale=2880:1620,zoompan=z={z_e}:x={x_e}:y={y_e}:d=1:s=1920x1080:fps={FPS},"
-          f"setsar=1,format=yuv420p")
-    af = f"adelay={int(bas_bosluk * 1000)}|{int(bas_bosluk * 1000)},apad,atrim=0:{s:.2f},aresample=48000"
-    ffmpeg("-loop", "1", "-framerate", str(FPS), "-i", resim, "-i", ses, "-t", f"{s:.2f}",
-           "-vf", vf, "-af", af, "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-           "-c:a", "aac", "-b:a", "160k", "-ac", "2", cikti)
+    try:
+        for i, bit in enumerate(sinirlar):
+            if tek_cekim:
+                z0, z1, cx0, cy0, cx1, cy1 = 1.0, 1.05, .5, .5, .5, .5
+            else:
+                z0, z1, cx0, cy0, cx1, cy1 = CERCEVELER[(sira * 2 + i) % len(CERCEVELER)]
+            L = max(1, bit - bas)
+            for k in range(bit - bas):
+                t = _yumusat(k / max(1, L - 1))
+                z = z0 + (z1 - z0) * t
+                cx = cx0 + (cx1 - cx0) * t
+                cy = cy0 + (cy1 - cy0) * t
+                w, h = SW / z, SH / z                      # kaynaktan alınan pencere
+                x0 = min(max(cx * SW - w / 2, 0.0), SW - w)
+                y0 = min(max(cy * SH - h / 2, 0.0), SH - h)
+                sc = OW / w
+                M = np.float32([[sc, 0, -x0 * sc], [0, sc, -y0 * sc]])
+                kare_img = cv2.warpAffine(kaynak, M, (OW, OH), flags=cv2.INTER_CUBIC,
+                                          borderMode=cv2.BORDER_REPLICATE)
+                p.stdin.write(kare_img.tobytes())
+            bas = bit
+        p.stdin.close()
+        hata = p.stderr.read().decode(errors="ignore")
+        if p.wait() != 0:
+            raise RuntimeError("ffmpeg hatası: " + hata[-800:])
+    except BrokenPipeError:
+        raise RuntimeError("ffmpeg hatası: " + p.stderr.read().decode(errors="ignore")[-800:])
     return cikti
 
 

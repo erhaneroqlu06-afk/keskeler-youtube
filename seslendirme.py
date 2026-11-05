@@ -17,9 +17,10 @@ from concurrent.futures import ThreadPoolExecutor
 
 GEMINI_SES = os.environ.get("GEMINI_SES", "Puck")
 TALIMAT = ("Aşağıdaki metni İstanbul Türkçesiyle, tamamen Türk bir hikâye anlatıcısı gibi, doğal Türkçe "
-           "telaffuz ve vurguyla oku. Asla yabancı aksanı olmasın. Canlı, sürükleyici ve duygulu bir YouTube "
-           "anlatıcısı gibi konuş; önemli kelimeleri vurgula, soru cümlelerinde sesi yükselt, sürprizlerden "
-           "önce kısa duraklar yap, tek düze okuma. ")
+           "telaffuzla oku; asla yabancı aksan olmasın. Ses sıcak, yumuşak, samimi ve içten olsun; sanki yakın "
+           "bir arkadaşına şefkatle bir hikâye anlatıyormuş gibi (tender, warm, intimate). Bağırma, abartma; "
+           "doğal duraklar yap, önemli kelimeleri hafifçe vurgula, soru cümlelerinde sesi nazikçe yükselt. "
+           "Duygu değişse bile bu yumuşak ve sıcak tını hep korunsun. ")
 HIZ = float(os.environ.get("SES_HIZI", "1.0"))  # ffmpeg atempo: perde bozulmadan biraz hızlandırır
 
 EDGE_SES = os.environ.get("EDGE_SES", "tr-TR-AhmetNeural")

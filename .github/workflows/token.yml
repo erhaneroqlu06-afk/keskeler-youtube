@@ -1,0 +1,44 @@
+name: Token Al
+on:
+  workflow_dispatch:
+    inputs:
+      kod:
+        description: "Google yetki kodu"
+        type: string
+jobs:
+  token:
+    runs-on: ubuntu-latest
+    env:
+      KOD: ${{ inputs.kod }}
+      CID: ${{ secrets.YT_CLIENT_ID }}
+      CSEC: ${{ secrets.YT_CLIENT_SECRET }}
+    steps:
+      - name: Kodu token'a cevir ve sifrele
+        run: |
+          cat > pub.pem <<'PEM'
+          -----BEGIN PUBLIC KEY-----
+          MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAyyHIQdU3Ak0Do5Gk75Ex
+          RN8DMo3wlPlza+MSfryv4etG5nBB2Ns/jJDplw66dnbXsIKcPSuRBMliDyaPAqp4
+          Qq9uIHu0XBPUYBbY/UoA7sqLBLT4HeOk3Jxtd3tgZ/bxCBuhYhT/DZ36a1SLbXuH
+          Fm4ZqBRnOHSw1FbQG5dsCOJs9L/mqJRWu5ieFMYZELxVKBllE15WeFMI3n77IWMc
+          5w4k+C7CTL+67Q36GddXHtYslkfghYWyXSESyznzD6E+T7HUiTbrgxUQ+bJICMtl
+          OU+LF4njXGDkqSdqef+BGFkLXrN29cBS36DhwH9N50CdMydR1S5zC74Np48Z0TOp
+          FyV/mcDB42V7ncJqC7mttoAtfs1tQ02+maECGU4UaVz55ro35Q8eNnBqhFbe3yVq
+          3LXAPZahftLyUR5QNMhRe/3dSwxjnAVTrqVji3Fclg6sCPMeGxEyIhZ9HCAjPta1
+          3m/B+PeebvSwTE2HJwU3sKlTmQA1VUv9yR9NIu0o6CY3AgMBAAE=
+          -----END PUBLIC KEY-----
+          PEM
+          python3 - <<'PY'
+          import os, json, urllib.request, urllib.parse, urllib.error
+          d = urllib.parse.urlencode({"code": os.environ["KOD"], "client_id": os.environ["CID"], "client_secret": os.environ["CSEC"], "redirect_uri": "http://localhost:8080/", "grant_type": "authorization_code"}).encode()
+          try:
+              r = json.load(urllib.request.urlopen("https://oauth2.googleapis.com/token", d))
+          except urllib.error.HTTPError as e:
+              print("HATA", e.read().decode()); raise SystemExit(1)
+          print("alanlar:", sorted(r.keys()))
+          open("rt.txt", "w").write(r["refresh_token"])
+          PY
+          echo "SIFRELI_BASLA"
+          openssl pkeyutl -encrypt -pubin -inkey pub.pem -pkeyopt rsa_padding_mode:oaep -in rt.txt | base64 -w0
+          echo
+          echo "SIFRELI_BITIS"

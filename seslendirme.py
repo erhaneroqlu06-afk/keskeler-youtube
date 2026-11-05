@@ -16,10 +16,11 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 GEMINI_SES = os.environ.get("GEMINI_SES", "Puck")
-TALIMAT = ("Read the following aloud in Turkish like a gripping, energetic YouTube storyteller: "
-           "lively and expressive, with clear emotional swings, stress on key words, rising intonation on "
-           "questions, dramatic pauses before reveals, a slightly fast confident pace, never monotone or flat. ")
-HIZ = float(os.environ.get("SES_HIZI", "1.08"))  # ffmpeg atempo: perde bozulmadan biraz hızlandırır
+TALIMAT = ("Aşağıdaki metni İstanbul Türkçesiyle, tamamen Türk bir hikâye anlatıcısı gibi, doğal Türkçe "
+           "telaffuz ve vurguyla oku. Asla yabancı aksanı olmasın. Canlı, sürükleyici ve duygulu bir YouTube "
+           "anlatıcısı gibi konuş; önemli kelimeleri vurgula, soru cümlelerinde sesi yükselt, sürprizlerden "
+           "önce kısa duraklar yap, tek düze okuma. ")
+HIZ = float(os.environ.get("SES_HIZI", "1.0"))  # ffmpeg atempo: perde bozulmadan biraz hızlandırır
 
 EDGE_SES = os.environ.get("EDGE_SES", "tr-TR-AhmetNeural")
 EDGE_HIZ = os.environ.get("EDGE_HIZ", "-5%")
@@ -62,7 +63,7 @@ def _gemini_ses(metin, cikti_yolu, ton=""):
         try:
             yanit = client.models.generate_content(
                 model=_tts_modeli(),
-                contents=TALIMAT.rstrip() + (f" The feeling here is: {ton}." if ton else "") + " Read this: " + metin,
+                contents=TALIMAT.rstrip() + (f" Bu cümledeki duygu (İngilizce): {ton}." if ton else "") + " Metin: " + metin,
                 config=types.GenerateContentConfig(
                     response_modalities=["AUDIO"],
                     speech_config=types.SpeechConfig(

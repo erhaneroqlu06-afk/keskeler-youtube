@@ -14,15 +14,14 @@ import subprocess
 
 
 FPS = 30
-CEKIM_SN = 4.0
+CEKIM_SN = 7.0
 
 # (z0, z1, cx0, cy0, cx1, cy1) — az yakınlaşma = net görüntü
 CERCEVELER = [
-    (1.00, 1.10, .50, .50, .50, .50),   # geniş, hafif yaklaşma
-    (1.22, 1.30, .40, .48, .44, .48),   # yakın sol
-    (1.22, 1.30, .60, .48, .56, .48),   # yakın sağ
-    (1.18, 1.18, .42, .50, .58, .50),   # yatay kaydırma
-    (1.28, 1.36, .50, .45, .50, .45),   # yüz yakın
+    (1.00, 1.05, .50, .50, .50, .50),   # çok hafif yaklaşma
+    (1.06, 1.00, .50, .50, .50, .50),   # çok hafif uzaklaşma
+    (1.08, 1.08, .47, .50, .53, .50),   # yavaş yan kayma
+    (1.08, 1.08, .53, .50, .47, .50),   # yavaş yan kayma (ters)
 ]
 
 

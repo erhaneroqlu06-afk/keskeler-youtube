@@ -56,7 +56,10 @@ def yukle(yt, dosya, meta, gizlilik, yayin_zamani=None, kapak=None):
     vid = yanit["id"]
 
     if kapak:
-        yt.thumbnails().set(videoId=vid,
-                            media_body=MediaFileUpload(kapak, mimetype="image/jpeg")).execute()
+        try:
+            yt.thumbnails().set(videoId=vid,
+                                media_body=MediaFileUpload(kapak, mimetype="image/jpeg")).execute()
+        except Exception as e:
+            print("[UYARI] Küçük resim yüklenemedi (kanal telefonla doğrulanmamış olabilir):", str(e)[:200], flush=True)
 
     return vid

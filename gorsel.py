@@ -1,56 +1,49 @@
 """
-gorsel.py — Gemini 2.5 Flash Image ile sepia + kırmızı aksanlı çizim üretimi.
+gorsel.py — Gemini 2.5 Flash Image ile renkli çizgi film tarzı çizimler.
 
 Keşkeler görsel stili:
-- Gazete illüstrasyonu / vintage çizim
-- Sepia ton (kirli krem zemin)
-- Kırmızı aksan rengi (tek vurgu noktası)
-- Siyah mürekkep çizgileri
-- Noktalama/tarama (hatching) dokusu
-- İnsan karakterleri nazik ifadeler, nostaljik duruş
-- Telif işareti, logo, marka YOK
-- Resimde yazı YOK
+- Modern 2D çizgi film (kalın temiz çizgi, sıcak düz renkler, yumuşak gölge)
+- Ayrıntılı gündelik Türk mekânları (apartman, çay bardağı, salon, sokak)
+- Her bölümün kahramanı baştan sona AYNI kişi (önce bir referans çizim üretilir,
+  sonraki her sahneye referans olarak verilir)
+- Resimde yazı, logo, marka YOK
 """
 
 import os
 import time
-import base64
+from concurrent.futures import ThreadPoolExecutor
 
 
 STIL_TARIFI = (
-    "Vintage Turkish newspaper illustration style, sepia-toned beige background "
-    "(like aged paper), warm off-white tones with slight grain and hatching texture. "
-    "Primary ink color is deep brown-black with fine pen cross-hatching. "
-    "One accent color only: muted red (#C43030) used sparingly for emphasis "
-    "(a single object, a highlight). No other bright colors. "
-    "Nostalgic, quiet, dignified mood. Characters have gentle expressions, "
-    "soft facial features, no exaggerated details. "
-    "Classic illustration composition, clean negative space. "
-    "No text, no logos, no brand names, no modern technology unless the era requires it."
+    "Modern 2D cartoon illustration for a YouTube storytelling video. Clean bold outlines, "
+    "warm saturated flat colors with soft shading, expressive friendly faces, rich detailed "
+    "everyday Turkish settings (apartment blocks, tea glasses, patterned sofas, neighborhood "
+    "streets, shops). Warm cinematic lighting, clear focal point, uncluttered composition. "
+    "No text, no letters, no logos, no brand names, no watermarks."
 )
 
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-image")
 
-def gorsel_uret(tarif, cikti_yolu, en_boy="16:9"):
-    """Gemini ile tek bir çizim üretir.
 
-    tarif: sahnenin İngilizce içerik tarifi (karakterlerin ne yaptığı, mekân, duygu).
-    cikti_yolu: PNG çıktısı buraya yazılır.
-    en_boy: "16:9" uzun video, "9:16" shorts, "1:1" kapak.
-    """
+def _istemci():
     from google import genai
+    return genai.Client()
+
+
+def _resim_iste(contents, cikti_yolu, en_boy):
+    """Gemini'den tek resim ister; 429/geçici hatalarda tekrar dener."""
     from google.genai import types
 
-    client = genai.Client()
-    tam_prompt = f"{tarif}\n\nSTYLE: {STIL_TARIFI}\n\nAspect ratio: {en_boy}"
-
+    client = _istemci()
     son_hata = None
-    for deneme in range(3):
+    for deneme in range(5):
         try:
             yanit = client.models.generate_content(
-                model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-image"),
-                contents=tam_prompt,
+                model=MODEL,
+                contents=contents,
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE"],
+                    image_config=types.ImageConfig(aspect_ratio=en_boy),
                 ),
             )
             for parca in yanit.candidates[0].content.parts:
@@ -61,26 +54,63 @@ def gorsel_uret(tarif, cikti_yolu, en_boy="16:9"):
             raise RuntimeError("Gemini yanıtında resim yok")
         except Exception as e:
             son_hata = e
-            if deneme < 2:
-                time.sleep(5 * (deneme + 1))
-
+            time.sleep(6 * (deneme + 1))
     raise RuntimeError(f"Gemini çizim üretilemedi: {son_hata}")
 
 
-def tum_sahneleri_ciz(hikaye, klasor):
-    """Hikayedeki her sahne için çizim üretir, dosya yollarını döner."""
+def gorsel_uret(tarif, cikti_yolu, en_boy="16:9", referans=None, karakter=None):
+    """Tek çizim. referans: kahraman çiziminin yolu (varsa aynı kişiyi korur)."""
+    from google.genai import types
+
+    metin = f"{tarif}\n\nSTYLE: {STIL_TARIFI}"
+    if karakter:
+        metin += f"\n\nMAIN CHARACTER: {karakter}"
+    if referans and os.path.exists(referans):
+        metin += ("\n\nThe attached image is the main character reference. Draw the SAME person "
+                  "(same face, hair, build and clothing style; adjust age and clothing only if the "
+                  "scene's era requires it) in the new scene.")
+        with open(referans, "rb") as f:
+            resim = types.Part.from_bytes(data=f.read(), mime_type="image/png")
+        contents = [resim, metin]
+    else:
+        contents = metin
+    return _resim_iste(contents, cikti_yolu, en_boy)
+
+
+def karakter_ciz(hikaye, klasor):
+    """Kahramanın referans çizimi (tam boy, sade arka plan)."""
+    yol = os.path.join(klasor, "karakter.png")
+    if not os.path.exists(yol):
+        print("  kahraman referansı çiziliyor...", flush=True)
+        gorsel_uret(
+            f"Character reference portrait, waist-up, facing the viewer with a calm friendly "
+            f"expression, plain soft background. The character: {hikaye['karakter']}",
+            yol, "16:9")
+    return yol
+
+
+def tum_sahneleri_ciz(hikaye, klasor, paralel=4):
+    """Her sahne için çizim üretir (4 paralel), dosya yollarını sırayla döner."""
     os.makedirs(klasor, exist_ok=True)
-    resimler = []
-    for i, sahne in enumerate(hikaye["sahneler"], 1):
-        yol = os.path.join(klasor, f"sahne{i:02d}.png")
-        if not os.path.exists(yol):
-            print(f"  sahne {i} çiziliyor...", flush=True)
-            gorsel_uret(sahne["gorsel"], yol, "16:9")
-        resimler.append(yol)
-    return resimler
+    ref = karakter_ciz(hikaye, klasor)
+    karakter = hikaye["karakter"]
+    yollar = [os.path.join(klasor, f"sahne{i:02d}.png") for i in range(1, len(hikaye["sahneler"]) + 1)]
+
+    def is_(i):
+        if not os.path.exists(yollar[i]):
+            print(f"  sahne {i + 1} çiziliyor...", flush=True)
+            gorsel_uret(hikaye["sahneler"][i]["gorsel"], yollar[i], "16:9",
+                        referans=ref, karakter=karakter)
+        return yollar[i]
+
+    with ThreadPoolExecutor(max_workers=paralel) as havuz:
+        list(havuz.map(is_, range(len(yollar))))
+    return yollar
 
 
 def kapak_ciz(hikaye, cikti_yolu):
     """YouTube küçük resmi için ana çizim (başlık üstüne eklenmeden önce)."""
-    gorsel_uret(hikaye["kapak_gorsel"], cikti_yolu, "16:9")
+    ref = os.path.join(os.path.dirname(cikti_yolu), "karakter.png")
+    gorsel_uret(hikaye["kapak_gorsel"], cikti_yolu, "16:9",
+                referans=ref, karakter=hikaye.get("karakter"))
     return cikti_yolu

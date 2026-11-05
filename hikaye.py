@@ -4,7 +4,7 @@ hikaye.py — Keşkeler bölümleri için Claude ile iki senaryolu hikaye yazım
 Her bölüm:
 - Bir "karar anı" (örn. 1999 depreminden önce evini satıp satmama)
 - İki paralel senaryo (karar verdin → şöyle oldu / vermeseydin → şöyle oldu)
-- 10 dakikalık video için ~25 sahne, yaklaşık 1500 kelime
+- 10 dakikalık video için 60 sahne, her sahne 1-2 cümle
 - Her sahnenin bir çizim tarifi var
 - Her sahnenin anlatıcı metni var
 - İlk sahne kanca (0-10 sn)
@@ -17,52 +17,54 @@ from datetime import datetime, timezone
 
 
 SISTEM_PROMPTU = """Sen "Keşkeler" adlı Türk YouTube kanalının senaryo yazarısın.
-İzleyici kitlen yetişkinler (30-60 yaş), özellikle emekliler ve orta yaşlılar. Nostaljik, duygulu
-ama abartısız bir dil kullanıyorsun.
+İzleyici kitlen yetişkinler (30-60 yaş). Sıcak, duygulu, günlük konuşma Türkçesi kullanıyorsun;
+sanki bir arkadaşına anlatıyormuşsun gibi. Resmî veya ders gibi konuşma.
 
-Her bölüm bir "ya olsaydı?" sorusunu iki paralel senaryo olarak anlatır:
-- SENARYO A: "Bu kararı verdin, 20 yıl sonra şöyle bir yerdesin"
+Her bölüm bir "ya olsaydı?" sorusunu iki paralel hayat olarak anlatır:
+- SENARYO A: "Bu kararı verdin, yıllar sonra şöyle bir yerdesin"
 - SENARYO B: "Vermeseydin şöyle olurdu"
+Hiçbirini doğru ya da yanlış diye yargılamıyoruz. İzleyici kendi hayatıyla eşleştirsin.
+Anlatım hep ikinci tekil şahıs: "sen". Hikâyenin kahramanı "sen"sin.
 
-Her iki senaryoyu da sakin, nesnel, duygulu anlat. Hiçbirini "doğru" ya da "yanlış" olarak yargılamıyoruz.
-İzleyici kendi hayatıyla eşleştirsin.
-
-BİÇİM KURALLARI
-- Tam 25 sahne, yaklaşık 10 dakika anlatım süresi.
-- Kanca sahnesi (sahne 1): 0-10 saniye arası, siyah ekranda "Bir karar. İki hayat." cümlesinden sonra
-  izleyiciyi hikayeye çeken kısa açılış. Konuyu bir soruyla açar.
-- Sahneler 2-3: Bağlam (yılı, mekânı, karakteri tanıtır — sen izleyiciye "sen" diye anlatıyorsun).
-- Sahneler 4-13: SENARYO A — kararı verdiğinde başına gelenler.
-- Sahne 14: Geçiş — "Peki ya başka bir yolu seçseydin?"
-- Sahneler 15-23: SENARYO B — kararı vermeseydin başına gelenler.
-- Sahne 24: Kapanış yorum — iki hayatın da kendi güzelliği ve kaybı var, yargı yok.
-- Sahne 25: İZLEYİCİ SORUSU — konuya özel bir "senin keşken?" sorusu.
-  Ör. Bitcoin konusu için: "Senin de pişman olduğun bir yatırım kararın var mı? Keşkeni yoruma yaz."
+TAM 60 SAHNE (yaklaşık 10 dakika). Dağılım:
+- Sahne 1: KANCA. Tek güçlü cümle: izleyiciyi ilk saniyede yakalayan bir an ya da soru.
+- Sahneler 2-5: Bağlam (yıl, mekân, günlük hayat, içindeki ikilem).
+- Sahneler 6-28: SENARYO A, adım adım, yıllara yayılarak.
+- Sahne 29: Geçiş: "Peki ya başka bir yolu seçseydin?"
+- Sahneler 30-56: SENARYO B, adım adım, yıllara yayılarak.
+- Sahneler 57-59: Kapanış; iki hayatın da güzelliği ve kaybı, yargı yok.
+- Sahne 60: İZLEYİCİ SORUSU; konuya özel, samimi ("Senin keşken ne olurdu? Yoruma yaz.").
 
 HER SAHNE
-- "metin": Anlatıcı tarafından sesli okunacak metin. 3-5 cümle, günlük ve sıcak Türkçe. 2. tekil şahıs
-  ("sen"). Kanca ve kapanış sahneleri daha kısa olabilir (1-2 cümle).
-- "gorsel": O sahnenin İNGİLİZCE çizim tarifi. Sepia + kırmızı aksanlı gazete illüstrasyonu stiliyle
-  uyumlu olsun. İnsan yüzü varsa ifadesi nazik ve nostaljik olsun; markalaşmış kıyafet, telif
-  işareti, gerçek markalar yok. (Resimde yazı olmasın.)
+- "metin": Sesli okunacak 1-2 kısa cümle (12-28 kelime). Somut ve görsel: bir nesne, bir koku, bir cümle,
+  bir yüz. Duyguyu anlatma, göster. Her sahne yeni bir şey söylesin; tekrar yok.
+- "gorsel": O sahnenin İNGİLİZCE çizim tarifi. Her tarifte ana kahraman (karakter) görünmeli;
+  mekân, ışık ve yüz ifadesi net olsun. Zaman geçtikçe kahramanın yaşı, kıyafeti ve çevresi dönemine uysun.
+  Düşünce balonu (hayalinde canlanan şey) kullanabilirsin. Resimde yazı, tabela metni, logo olmasın.
+  Her sahne bir öncekinden görsel olarak farklı olsun (farklı mekân, açı veya an).
 
-ÇIKTI
-- "ozet": Bölümü iki cümlede özetleyen Türkçe metin (açıklama alanı için).
-- "sahneler": 25 sahnelik dizi (metin + gorsel).
-- "kapak_gorsel": Küçük resim için İNGİLİZCE tarif. İki yolu aynı karede gösteren (ör. yol çatallanması
-  karakterin arkasında), sepia + kırmızı aksan stili. Üst üçte bir kısmı başlık yazısı için boş kalsın.
+ÇIKTI ALANLARI
+- "karakter": Kahramanın İNGİLİZCE dış görünüş tarifi (cinsiyet, yaklaşık yaş, saç, yüz, kıyafet). Tek kişi,
+  tüm sahnelerde aynı kişi. Konu aile içi ise yan karakterleri sahnede tarif et.
+- "ozet": Bölümü iki cümlede özetleyen Türkçe açıklama.
+- "izleyici_sorusu": Sahne 60'ın ekranda görünecek KISA hali (en fazla 60 karakter, Türkçe).
+- "kapak_gorsel": Küçük resim için İNGİLİZCE tarif: kahramanın iri, duygulu yüzü yakın planda;
+  arkasında iki yolu hissettiren bir şey (ör. iki farklı ev ya da yol); üst üçte bir boş kalsın.
+- "sahneler": 60 sahnelik dizi.
 
 DİKKAT
-- GERÇEK isim uydurma (karakter "sen"sin, tarafsız anlatım).
-- HASSAS konularda (deprem, kayıp, ekonomik kriz) duyguyu ağırlaştırmadan, saygıyla anlat.
-- DOLDURULMUŞ bilgi uydurma; dönem hakkında emin olmadığın şeyi atla.
-- NEŞELİ ve kasvetli yanları dengele, tek yönlü karanlık olmasın."""
+- GERÇEK kişi adı uydurma; markalaşmış ürün, logo yok.
+- Hassas konularda (deprem, kayıp, kriz) saygılı ol, duyguyu abartma.
+- Dönem hakkında emin olmadığın bilgiyi yazma.
+- Karanlık ve umutlu anları dengele."""
 
 
 HIKAYE_SEMASI = {
     "type": "object",
     "properties": {
         "ozet": {"type": "string"},
+        "karakter": {"type": "string"},
+        "izleyici_sorusu": {"type": "string"},
         "kapak_gorsel": {"type": "string"},
         "sahneler": {
             "type": "array",
@@ -77,7 +79,7 @@ HIKAYE_SEMASI = {
             },
         },
     },
-    "required": ["ozet", "kapak_gorsel", "sahneler"],
+    "required": ["ozet", "karakter", "izleyici_sorusu", "kapak_gorsel", "sahneler"],
     "additionalProperties": False,
 }
 
@@ -98,9 +100,9 @@ def hikaye_yaz(bolum):
         "duygu": bolum.get("duygu", ""),
     }
 
-    yanit = client.messages.create(
+    with client.messages.stream(
         model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-5"),
-        max_tokens=16000,
+        max_tokens=24000,
         system=SISTEM_PROMPTU,
         output_config={
             "effort": "medium",
@@ -110,7 +112,8 @@ def hikaye_yaz(bolum):
             "role": "user",
             "content": "Bölüm bilgisi:\n" + json.dumps(girdi, ensure_ascii=False, indent=2),
         }],
-    )
+    ) as akis:
+        yanit = akis.get_final_message()
 
     if yanit.stop_reason != "end_turn":
         raise ValueError(f"Beklenmeyen stop_reason: {yanit.stop_reason}")
@@ -118,8 +121,8 @@ def hikaye_yaz(bolum):
     metin = next(b.text for b in yanit.content if b.type == "text")
     h = json.loads(metin)
 
-    if not 20 <= len(h["sahneler"]) <= 30:
-        raise ValueError(f"{len(h['sahneler'])} sahne üretildi (hedef 25)")
+    if not 50 <= len(h["sahneler"]) <= 70:
+        raise ValueError(f"{len(h['sahneler'])} sahne üretildi (hedef 60)")
 
     return h
 

@@ -54,40 +54,36 @@ def _satirlara_bol(d, metin, en, boyut_ust, boyut_alt, azami=2):
 
 
 def kapak_yap(sahne_resmi, kanca_sorusu, bolum_no, cikti):
-    """YouTube 1280x720 küçük resim üretir."""
-    # Alt kısım: sahne resmi, biraz canlandırılmış
+    """YouTube 1280x720 küçük resim: renkli çizim, üstte iri sarı başlık, köşede kırmızı rozet."""
     from PIL import ImageEnhance
     sahne = Image.open(sahne_resmi).convert("RGB").resize((1280, 720))
-    sahne = ImageEnhance.Color(sahne).enhance(1.15)
-    sahne = ImageEnhance.Contrast(sahne).enhance(1.08)
+    sahne = ImageEnhance.Color(sahne).enhance(1.2)
+    sahne = ImageEnhance.Contrast(sahne).enhance(1.1)
 
-    # Üst üçte bir için sepia arka plan şeridi
-    img = sahne.copy()
-    d = ImageDraw.Draw(img, "RGBA")
+    # Üstte yumuşak koyu geçiş: yazı her resimde okunsun
+    kar = Image.new("RGBA", (1280, 720), (0, 0, 0, 0))
+    kd = ImageDraw.Draw(kar)
+    for y in range(0, 330):
+        a = int(200 * (1 - y / 330) ** 1.4)
+        kd.line((0, y, 1280, y), fill=(10, 8, 20, a))
+    img = Image.alpha_composite(sahne.convert("RGBA"), kar)
+    d = ImageDraw.Draw(img)
 
-    # Üst şerit yarı saydam sepia
-    d.rectangle((0, 0, 1280, 240), fill=(242, 230, 206, 235))
-
-    # Başlık: kanca sorusu
     yazi = _buyuk(kanca_sorusu)
-    f, boyut, satirlar = _satirlara_bol(d, yazi, 1180, 100, 54, azami=2)
-    toplam_y = int(boyut * 1.12) * len(satirlar)
-    y = (240 - toplam_y) // 2
-    for s in satirlar:
-        g = d.textlength(s, font=f)
-        d.text(((1280 - g) / 2, y), s, font=f, fill=INK,
-               stroke_width=4, stroke_fill=(248, 240, 220))
+    f, boyut, satirlar = _satirlara_bol(d, yazi, 1200, 104, 54, azami=2)
+    y = 28
+    for s_ in satirlar:
+        g = d.textlength(s_, font=f)
+        d.text(((1280 - g) / 2, y), s_, font=f, fill=SARI,
+               stroke_width=max(6, boyut // 9), stroke_fill=(15, 10, 25))
         y += int(boyut * 1.12)
 
-    # Üst şerit ile alt kısım arası ince kırmızı çizgi
-    d.line((0, 240, 1280, 240), fill=(196, 48, 48), width=4)
-
-    # Sağ alt köşede KEŞKELER rozeti
-    fr = _yazi_tipi(32)
+    # Sağ altta KEŞKELER rozeti (kırmızı)
+    fr = _yazi_tipi(34)
     rozet = f"KEŞKELER  ·  #{bolum_no:03d}"
     g = d.textlength(rozet, font=fr)
-    d.rounded_rectangle((1280 - g - 44, 650, 1262, 702), radius=12, fill=(28, 20, 14, 230))
-    d.text((1280 - g - 22, 660), rozet, font=fr, fill=SEPIA)
+    d.rounded_rectangle((1280 - g - 48, 646, 1256, 700), radius=14, fill=(196, 48, 48, 255))
+    d.text((1280 - g - 24, 656), rozet, font=fr, fill=(255, 255, 255))
 
-    img.save(cikti, quality=92)
+    img.convert("RGB").save(cikti, quality=92)
     return cikti

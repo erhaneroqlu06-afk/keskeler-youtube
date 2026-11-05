@@ -96,9 +96,11 @@ def uret(bolum, ornek=False):
     hm.kaydet(bno, hikaye, URETIM_KAYDI)
     log(f"   {len(hikaye['sahneler'])} sahne üretildi")
 
-    # Örnek modunda ilk 5 sahne + son soruyu al
+    hikaye["kanca_sorusu"] = bolum["kanca"]
+
+    # Örnek modunda ilk 7 sahne + son soru sahnesi (hızlı ve ucuz deneme)
     if ornek:
-        hikaye["sahneler"] = hikaye["sahneler"][:4] + [hikaye["sahneler"][-1]]
+        hikaye["sahneler"] = hikaye["sahneler"][:7] + [hikaye["sahneler"][-1]]
         log(f"   örnek modu → {len(hikaye['sahneler'])} sahneye düşürüldü")
 
     log(f"[2/6] {len(hikaye['sahneler'])} çizim üretiliyor...")

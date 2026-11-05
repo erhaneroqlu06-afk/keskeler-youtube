@@ -3,7 +3,7 @@ kurgu.py — Keşkeler için profesyonel montaj (müziksiz).
 
 Yapı:
   1. KANCA (0-10 sn): Siyah ekranda "Bir karar. İki hayat." sonra ilk sahne açılır.
-  2. Her sahne ~5 sn'lik Ken Burns çekimlerine bölünür (geniş/yakın/kaydırma).
+  2. Her sahne ~4 sn'lik Ken Burns çekimlerine bölünür (geniş/yakın/kaydırma).
   3. Sahneler arası sert kesme; siyah geçiş ya da uzun sessizlik yok.
   4. Son sahne: izleyici sorusu üstünde kırmızı pano.
   5. Müzik YOK — sadece anlatıcı sesi.
@@ -14,7 +14,7 @@ import subprocess
 
 
 FPS = 30
-CEKIM_SN = 5.0
+CEKIM_SN = 4.0
 
 # (z0, z1, cx0, cy0, cx1, cy1)
 CERCEVELER = [
@@ -197,13 +197,20 @@ def kurgula(hikaye, sesler, resimler, klasor, cikti_mp4):
 
     # 2. ilk sahne: kanca sorusu üstte büyük yazı
     ilk_resim_kanca = os.path.join(klasor, "_ilk_kanca.jpg")
-    kanca_resmi(resimler[0], hikaye["sahneler"][0]["metin"][:60], ilk_resim_kanca)
+    kanca_resmi(resimler[0], hikaye.get("kanca_sorusu") or hikaye["sahneler"][0]["metin"][:60],
+                ilk_resim_kanca)
     k1 = sahne_klibi(ilk_resim_kanca, sesler[0], os.path.join(klasor, "_01.mp4"), 0, tek_cekim=True)
     klipler.append(k1)
 
-    # 3. kalan sahneler normal Ken Burns
+    # 3. kalan sahneler normal Ken Burns; son sahnede izleyici sorusu ekranda
+    son = len(resimler) - 1
     for i in range(1, len(resimler)):
-        kl = sahne_klibi(resimler[i], sesler[i], os.path.join(klasor, f"_{i+1:02d}.mp4"), i)
+        resim = resimler[i]
+        if i == son and hikaye.get("izleyici_sorusu"):
+            resim = kanca_resmi(resimler[i], hikaye["izleyici_sorusu"],
+                                os.path.join(klasor, "_son_soru.jpg"))
+        kl = sahne_klibi(resim, sesler[i], os.path.join(klasor, f"_{i+1:02d}.mp4"), i,
+                         tek_cekim=(i == son))
         klipler.append(kl)
 
     # birleştir
